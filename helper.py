@@ -86,11 +86,10 @@ def get_image(image_path, width, height, mode):
 def get_batch(image_files, width, height, mode):
     data_batch = np.array(
         [get_image(sample_file, width, height, mode) for sample_file in image_files]).astype(np.float32)
-
     # Make sure the images are in 4 dimensions
     if len(data_batch.shape) < 4:
         data_batch = data_batch.reshape(data_batch.shape + (1,))
-
+        
     return data_batch
 
 
