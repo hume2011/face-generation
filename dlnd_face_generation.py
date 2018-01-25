@@ -130,9 +130,9 @@ def model_inputs(image_width, image_height, image_channels, z_dim):
     :return: Tuple of (tensor of real input images, tensor of z data, learning rate)
     """
     # TODO: Implement Function
-    input_real = tf.placeholder(tf.float32,[None, image_width, image_height,image_channels], name='x')
+    input_real = tf.placeholder(tf.float32,[None, image_width, image_height,image_channels], name='input_real')
     
-    input_z = tf.placeholder(tf.float32, [None,z_dim], name='z')
+    input_z = tf.placeholder(tf.float32, [None,z_dim], name='input_z')
     
     lr = tf.placeholder(tf.float32,name='lr')
 
@@ -163,12 +163,16 @@ def discriminator(images, reuse=False, alpha=0.2):
     # TODO: Implement Function
     with tf.variable_scope('discriminator',reuse=reuse):
         
-        x1 = tf.layers.conv2d(images, 64, 5, strides=2, padding='same')
+        x1 = tf.layers.conv2d(images, 64, 5, strides=2, padding='same',
+                              kernel_initializer=tf.contrib.layers.xavier_initializer())
         relu1 = tf.maximum(alpha*x1, x1)
+        relu1 = tf.nn.dropout(relu1,0.8)
         
-        x2 = tf.layers.conv2d(relu1, 256, 5, strides=2, padding='same')
+        x2 = tf.layers.conv2d(relu1, 256, 5, strides=2, padding='same',
+                             kernel_initializer=tf.contrib.layers.xavier_initializer())
         bn2 = tf.layers.batch_normalization(x2, training=True)
         relu2 = tf.maximum(alpha * bn2, bn2)
+        relu2 = tf.nn.dropout(relu2,0.8)
         
         flat = tf.reshape(relu2, (-1, 7*7*512))
         logits = tf.layers.dense(flat, 1)
@@ -212,12 +216,17 @@ def generator(z, out_channel_dim, is_train=True, alpha=0.2):
 
         x1 = tf.layers.batch_normalization(x1, training=is_train)
         x1 = tf.maximum(alpha * x1, x1)
+        'print(x1.get_shape().as_list())'
         
-        x2 = tf.layers.conv2d_transpose(x1, 256, 5, strides=2, padding='same')
+        x2 = tf.layers.conv2d_transpose(x1, 256, 5, strides=2, padding='same',
+                                       kernel_initializer=tf.contrib.layers.xavier_initializer())
         x2 = tf.layers.batch_normalization(x2, training=is_train)
         x2 = tf.maximum(alpha * x2, x2)
+        'print(x2.get_shape().as_list())'
         
-        logits = tf.layers.conv2d_transpose(x2, out_channel_dim, 5, strides=2, padding='same')
+        logits = tf.layers.conv2d_transpose(x2, out_channel_dim, 5, strides=2, padding='same', 
+                                           kernel_initializer=tf.contrib.layers.xavier_initializer())
+        'print(logits.get_shape().as_list())'
         output = tf.tanh(logits)
     
         return output
@@ -416,8 +425,8 @@ def train(epoch_count, batch_size, z_dim, learning_rate, beta1, get_batches, dat
 
 
 batch_size = 64
-z_dim = 1
-learning_rate = 0.001
+z_dim = 100
+learning_rate = 0.0002
 beta1 = 0.5
 
 
@@ -438,9 +447,9 @@ with tf.Graph().as_default():
 # In[13]:
 
 
-batch_size = 32
-z_dim = 3
-learning_rate = 0.001
+batch_size = 16
+z_dim = 100
+learning_rate = 0.0002
 beta1 = 0.5
 
 
