@@ -167,17 +167,27 @@ def discriminator(images, reuse=False, alpha=0.2):
                               kernel_initializer=tf.contrib.layers.xavier_initializer())
         relu1 = tf.maximum(alpha*x1, x1)
         relu1 = tf.nn.dropout(relu1,0.8)
+        # 14*14*64
         
-        x2 = tf.layers.conv2d(relu1, 256, 5, strides=2, padding='same',
+        x2 = tf.layers.conv2d(relu1, 128, 5, strides=2, padding='same',
                              kernel_initializer=tf.contrib.layers.xavier_initializer())
         bn2 = tf.layers.batch_normalization(x2, training=True)
         relu2 = tf.maximum(alpha * bn2, bn2)
         relu2 = tf.nn.dropout(relu2,0.8)
+        # 7*7*128
+        
+        """
+        x3 = tf.layers.conv2d(relu2, 256, 5, strides=2, padding='same',
+                             kernel_initializer=tf.contrib.layers.xavier_initializer())
+        bn3 = tf.layers.batch_normalization(x3, training=True)
+        relu3 = tf.maximum(alpha * bn3, bn3)
+        relu3 = tf.nn.dropout(relu3,0.8)
+        # 7*7*256
+        """
         
         flat = tf.reshape(relu2, (-1, 7*7*512))
         logits = tf.layers.dense(flat, 1)
         output = tf.sigmoid(logits)
-        
 
     return output, logits
 
@@ -206,27 +216,35 @@ def generator(z, out_channel_dim, is_train=True, alpha=0.2):
     :return: The tensor output of the generator
     """
     # TODO: Implement Function
-    if is_train==False:
-        reuse=True 
-    if is_train==True:
-        reuse=False 
-    with tf.variable_scope('generator', reuse=reuse):
+    with tf.variable_scope('generator', reuse=not is_train):
         x1 = tf.layers.dense(z, 7*7*512)
         x1 = tf.reshape(x1, (-1, 7, 7, 512))
 
         x1 = tf.layers.batch_normalization(x1, training=is_train)
         x1 = tf.maximum(alpha * x1, x1)
-        'print(x1.get_shape().as_list())'
+        # 7*7*512
         
-        x2 = tf.layers.conv2d_transpose(x1, 256, 5, strides=2, padding='same',
+        x2 = tf.layers.conv2d_transpose(x1, 256, 5, strides=1, padding='same',
                                        kernel_initializer=tf.contrib.layers.xavier_initializer())
         x2 = tf.layers.batch_normalization(x2, training=is_train)
         x2 = tf.maximum(alpha * x2, x2)
-        'print(x2.get_shape().as_list())'
+        # 7*7*256
         
-        logits = tf.layers.conv2d_transpose(x2, out_channel_dim, 5, strides=2, padding='same', 
+        x3 = tf.layers.conv2d_transpose(x2, 128, 5, strides=2, padding='same',
+                                       kernel_initializer=tf.contrib.layers.xavier_initializer())
+        x3 = tf.layers.batch_normalization(x3, training=is_train)
+        x3 = tf.maximum(alpha * x3, x3)
+        # 14*14*128
+        
+        x4 = tf.layers.conv2d_transpose(x3, 64, 5, strides=1, padding='same',
+                                       kernel_initializer=tf.contrib.layers.xavier_initializer())
+        x4 = tf.layers.batch_normalization(x4, training=is_train)
+        x4 = tf.maximum(alpha * x4, x4)
+        # 14*14*64
+        
+        logits = tf.layers.conv2d_transpose(x4, out_channel_dim, 5, strides=2, padding='same', 
                                            kernel_initializer=tf.contrib.layers.xavier_initializer())
-        'print(logits.get_shape().as_list())'
+        # 28*28*out_channel_dim
         output = tf.tanh(logits)
     
         return output
@@ -421,7 +439,7 @@ def train(epoch_count, batch_size, z_dim, learning_rate, beta1, get_batches, dat
 # ### MNIST
 # 在 MNIST 上测试你的 GANs 模型。经过 2 次迭代，GANs 应该能够生成类似手写数字的图像。确保生成器 (generator) 低于辨别器 (discriminator) 的损失，或接近 0。
 
-# In[12]:
+# In[ ]:
 
 
 batch_size = 64
@@ -444,10 +462,10 @@ with tf.Graph().as_default():
 # ### CelebA
 # 在 CelebA 上运行你的 GANs 模型。在一般的GPU上运行每次迭代大约需要 20 分钟。你可以运行整个迭代，或者当 GANs 开始产生真实人脸图像时停止它。
 
-# In[13]:
+# In[ ]:
 
 
-batch_size = 16
+batch_size = 64
 z_dim = 100
 learning_rate = 0.0002
 beta1 = 0.5
@@ -456,7 +474,7 @@ beta1 = 0.5
 """
 DON'T MODIFY ANYTHING IN THIS CELL THAT IS BELOW THIS LINE
 """
-epochs = 1
+epochs = 5
 
 celeba_dataset = helper.Dataset('celeba', glob(os.path.join(data_dir, 'img_align_celeba/*.jpg')))
 with tf.Graph().as_default():
